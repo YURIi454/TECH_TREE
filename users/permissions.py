@@ -2,12 +2,28 @@ from rest_framework.permissions import BasePermission
 
 
 class ActiveUserPermission(BasePermission):
-    """Допуск только активному пользователю."""
+    """Доступ к API только для активных сотрудников.
 
-    message = "Только активный сотрудник имеет доступ."
+    Сотрудником считается пользователь с is_employer=True.
+    Неактивные сотрудники (is_active=False) и мягко удалённые
+    (is_deleted=True) доступа не имеют.
+    """
+
+    message = "Доступ к API разрешён только активным сотрудникам."
 
     def has_permission(self, request, view):
-        if not hasattr(request.user, "is_employer"):
+        user = request.user
+
+        if user is None or not user.is_authenticated:
             return False
 
-        return request.user.is_authenticated and request.user.is_active
+        if not user.is_active:
+            return False
+
+        # Мягко удалённый сотрудник не имеет доступа ни к одной ручке,
+        # кроме собственного восстановления
+
+        if getattr(user, "is_deleted", False) and not getattr(view, "allow_deleted_user", False):
+            return False
+
+        return bool(getattr(user, "is_employer", False))

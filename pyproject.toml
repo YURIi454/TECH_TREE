@@ -3,7 +3,7 @@ name = "tech-tree"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "Yurii",email = "yurii.1986.e@gmail.com"}
+    { name = "Yurii", email = "yurii.1986.e@gmail.com" }
 ]
 
 readme = "README.md"
@@ -41,9 +41,3 @@ exclude = ".git"
 [tool.isort]
 line_length = 119
 multi_line_output = 3
-
-[tool.flake8]
-max-line-length = 119
-ignore = ["W503", "E203", "E501"]
-select = ["E", "F", "W"]
-exclude = ["migrations/*", "venv/*", ".git/*", "docs/*"]

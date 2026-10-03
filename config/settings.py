@@ -13,7 +13,30 @@ SECRET_KEY = env.str("SECRET_KEY")
 
 DEBUG = env.bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "[::1]"])
+
+# Полный набор продакшн-настроек включается одним флагом, чтобы локальная
+# разработка по http продолжала работать. Включайте SECURE_SSL=1 только когда
+# приложение реально обслуживается по HTTPS (напрямую или через прокси).
+SECURE_SSL = env.bool("SECURE_SSL", default=False)
+
+SECURE_SSL_REDIRECT = SECURE_SSL
+SESSION_COOKIE_SECURE = SECURE_SSL
+CSRF_COOKIE_SECURE = SECURE_SSL
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+
+if SECURE_SSL:
+    SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", 31536000)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    if env.bool("USE_X_FORWARDED_PROTO", default=False):
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 AUTH_USER_MODEL = "users.CustomUser"
 
@@ -72,7 +95,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_FILTER_BACKENDS': (
-        'django_filters.rest_framework.DjangoFilterBackend'
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -86,8 +110,8 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'User Management API',
-    'DESCRIPTION': 'API для регистрации, получения и удаления пользователей.',
+    'TITLE': 'TECH TREE API',
+    'DESCRIPTION': 'API торговой сети электроники: пользователи, звенья сети, продукты.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }

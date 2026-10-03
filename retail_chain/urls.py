@@ -1,4 +1,6 @@
 from django.urls import path
+
+from retail_chain.services import RestoreChain, RestoreProduct
 from retail_chain.views import (
     CreateChain,
     CreateProduct,
@@ -8,8 +10,6 @@ from retail_chain.views import (
     InfoProduct,
     ListChain,
     ListProduct,
-    RestoreChain,
-    RestoreProduct,
     UpdateChain,
     UpdateProduct,
 )
@@ -23,6 +23,7 @@ urlpatterns = [
     path("product_list/", ListProduct.as_view(), name="product_list"),
     path("product_delete/<int:pk>/", DeleteProduct.as_view(), name="product_delete"),
     path("product_restore/<int:pk>/", RestoreProduct.as_view(), name="product_restore"),
+
     path("chain_create/", CreateChain.as_view(), name="chain_create"),
     path("chain_update/<int:pk>/", UpdateChain.as_view(), name="chain_update"),
     path("chain_info/<int:pk>/", InfoChain.as_view(), name="chain_info"),

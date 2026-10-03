@@ -1,148 +1,115 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter
 from rest_framework.generics import CreateAPIView, DestroyAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView
 
+from retail_chain.filters import ChainLinkFilter, ProductFilter
 from retail_chain.models import ChainLink, Product
-from retail_chain.serializers import ChainSerializer, ProductSerializer
-from users.permissions import ActiveUserPermission
-
-from .services import RestoreChain, RestoreProduct  # noqa: F401
+from retail_chain.serializers import ChainLinkSerializer, ProductSerializer
 
 
 class CreateProduct(CreateAPIView):
     """Создание продукта."""
 
-    permission_classes = [ActiveUserPermission]
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend]
-
-    def get_queryset(self):
-        return Product.objects.all()
 
 
 class UpdateProduct(UpdateAPIView):
     """Редактирование продукта."""
 
-    permission_classes = [ActiveUserPermission]
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend]
 
     def get_queryset(self):
         return Product.objects.filter(is_deleted=False)
 
 
 class InfoProduct(RetrieveAPIView):
-    """Подробная информация продукта."""
+    """Подробная информация о продукте."""
 
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend]
 
-    def get_object(self):
-        pk = self.kwargs["pk"]
-        obj = Product.objects.get(pk=pk, is_deleted=False)
-        return obj
+    def get_queryset(self):
+        return Product.objects.filter(is_deleted=False)
 
 
 class ListProduct(ListAPIView):
     """Список продуктов."""
 
-    permission_classes = [ActiveUserPermission]
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = [
-        "is_deleted",
-        "name",
-    ]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = ProductFilter
+    ordering = ("name",)
+    ordering_fields = ("name", "model", "price", "release_date", "created_at")
 
     def get_queryset(self):
-        queryset = Product.objects.filter(is_deleted=False)
-        return queryset
+        return Product.objects.filter(is_deleted=False)
 
 
 class DeleteProduct(DestroyAPIView):
-    """Удаление продукта."""
+    """Удаление продукта (soft delete)."""
 
-    permission_classes = [ActiveUserPermission]
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend]
-
-    def perform_destroy(self, instance):
-        """Установка статуса "на удаление"."""
-
-        instance.is_deleted = True
-        instance.save()
 
     def get_queryset(self):
-        return Product.objects.all()
+        return Product.objects.filter(is_deleted=False)
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save(update_fields=["is_deleted", "updated_at"])
 
 
 class CreateChain(CreateAPIView):
     """Создание элемента торговой цепи."""
 
-    permission_classes = [ActiveUserPermission]
-    serializer_class = ChainSerializer
-    filter_backends = [DjangoFilterBackend]
-
-    def get_queryset(self):
-        return ChainLink.objects.all()
+    serializer_class = ChainLinkSerializer
 
 
 class UpdateChain(UpdateAPIView):
     """Редактирование элемента торговой цепи."""
 
-    serializer_class = ChainSerializer
-    filter_backends = [DjangoFilterBackend]
+    serializer_class = ChainLinkSerializer
 
     def get_queryset(self):
-        return ChainLink.objects.all().filter(is_deleted=False)
+        return ChainLink.objects.filter(is_deleted=False)
 
 
 class InfoChain(RetrieveAPIView):
-    """Подробная информация элемента торговой цепи."""
+    """Подробная информация об элементе торговой цепи."""
 
-    permission_classes = [ActiveUserPermission]
-    serializer_class = ChainSerializer
-    filter_backends = [DjangoFilterBackend]
+    serializer_class = ChainLinkSerializer
 
     def get_queryset(self):
-        queryset = (
-            ChainLink.objects.select_related("person")
-            .select_related("level")
+        return (
+            ChainLink.objects.filter(is_deleted=False)
+            .select_related("person", "supplier")
             .prefetch_related("product")
-            .filter(is_deleted=False)
         )
-        return queryset
 
 
 class ListChain(ListAPIView):
     """Список элементов торговой цепи."""
 
-    permission_classes = [ActiveUserPermission]
-    serializer_class = ChainSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["is_deleted", "name"]
+    serializer_class = ChainLinkSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = ChainLinkFilter
+    ordering = ("name",)
+    ordering_fields = ("name", "country", "city", "debt_to_supplier", "created_at")
 
     def get_queryset(self):
-        queryset = (
-            ChainLink.objects.select_related("person")
-            .select_related("level")
+        return (
+            ChainLink.objects.filter(is_deleted=False)
+            .select_related("person", "supplier")
             .prefetch_related("product")
-            .filter(is_deleted=False)
         )
-        return queryset
 
 
 class DeleteChain(DestroyAPIView):
-    """Удаление элемента торговой цепи."""
+    """Удаление элемента торговой цепи (soft delete)."""
 
-    permission_classes = [ActiveUserPermission]
-    serializer_class = ChainSerializer
-    filter_backends = [DjangoFilterBackend]
-
-    def perform_destroy(self, instance):
-        """Установка статуса "на удаление"."""
-
-        instance.is_deleted = True
-        instance.save()
+    serializer_class = ChainLinkSerializer
 
     def get_queryset(self):
-        return ChainLink.objects.all()
+        return ChainLink.objects.filter(is_deleted=False)
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save(update_fields=["is_deleted", "updated_at"])
